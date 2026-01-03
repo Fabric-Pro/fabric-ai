@@ -74,7 +74,7 @@ type Flags struct {
 	Serve                           bool                 `long:"serve" description:"Serve the Fabric Rest API"`
 	ServeOllama                     bool                 `long:"serveOllama" description:"Serve the Fabric Rest API with ollama endpoints"`
 	ServeAddress                    string               `long:"address" description:"The address to bind the REST API" default:":8080"`
-	ServeAPIKey                     string               `long:"api-key" description:"API key used to secure server routes" default:""`
+	ServeAPIKey                     string               `long:"api-key" env:"FABRIC_SERVER_API_KEY" description:"API key used to secure server routes (can also be set via FABRIC_SERVER_API_KEY env var)" default:""`
 	Config                          string               `long:"config" description:"Path to YAML config file"`
 	Version                         bool                 `long:"version" description:"Print current version"`
 	ListExtensions                  bool                 `long:"listextensions" description:"List all registered extensions"`

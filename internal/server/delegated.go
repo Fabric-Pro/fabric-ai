@@ -202,8 +202,9 @@ type TemplatePluginResponse struct {
 
 // StrategyInfo represents a strategy with its content
 type StrategyInfo struct {
-	Name    string `json:"name"`
-	Content string `json:"content"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Prompt      string `json:"prompt"`
 }
 
 // ContextInfo represents a context with its content
@@ -1163,9 +1164,9 @@ func (h *DelegatedHandler) HandleDelegatedYouTubePlaylist(c *gin.Context) {
 	var playlistVideos []PlaylistVideoInfo
 	for _, v := range videos {
 		playlistVideos = append(playlistVideos, PlaylistVideoInfo{
-			VideoId: v.VideoId,
+			VideoId: v.Id,
 			Title:   v.Title,
-			URL:     fmt.Sprintf("https://www.youtube.com/watch?v=%s", v.VideoId),
+			URL:     fmt.Sprintf("https://www.youtube.com/watch?v=%s", v.Id),
 		})
 	}
 
@@ -1257,12 +1258,12 @@ func (h *DelegatedHandler) HandleDelegatedStrategies(c *gin.Context) {
 		return
 	}
 
-	strategies := h.registry.Strategy.GetStrategies()
 	var result []StrategyInfo
-	for name, content := range strategies {
+	for name, s := range h.registry.Strategies.Strategies {
 		result = append(result, StrategyInfo{
-			Name:    name,
-			Content: content,
+			Name:        name,
+			Description: s.Description,
+			Prompt:      s.Prompt,
 		})
 	}
 
@@ -1302,16 +1303,16 @@ func (h *DelegatedHandler) HandleDelegatedGetStrategy(c *gin.Context) {
 		return
 	}
 
-	strategies := h.registry.Strategy.GetStrategies()
-	content, ok := strategies[name]
+	s, ok := h.registry.Strategies.Strategies[name]
 	if !ok {
 		c.JSON(http.StatusNotFound, gin.H{"error": fmt.Sprintf("Strategy '%s' not found", name)})
 		return
 	}
 
 	c.JSON(http.StatusOK, StrategyInfo{
-		Name:    name,
-		Content: content,
+		Name:        name,
+		Description: s.Description,
+		Prompt:      s.Prompt,
 	})
 }
 

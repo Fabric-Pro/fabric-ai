@@ -88,6 +88,7 @@ func Serve(registry *core.PluginRegistry, address string, apiKey string) (err er
 	NewSessionsHandler(r, fabricDb.Sessions)
 	NewChatHandler(r, registry, fabricDb)
 	NewYouTubeHandler(r, registry)
+	NewWebSearchHandler(r, registry) // Web search and scraping via Jina AI
 	NewConfigHandler(r, fabricDb)
 	NewModelsHandler(r, registry.VendorManager)
 	NewStrategiesHandler(r)

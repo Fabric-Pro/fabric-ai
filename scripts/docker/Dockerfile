@@ -72,6 +72,10 @@ WORKDIR /app
 
 # Server configuration
 ENV GIN_MODE=release
+# API Key authentication (recommended for production)
+# Set FABRIC_SERVER_API_KEY to enable API key authentication
+# Clients must send this key in the X-API-Key header
+# ENV FABRIC_SERVER_API_KEY=""
 
 EXPOSE 8080
 

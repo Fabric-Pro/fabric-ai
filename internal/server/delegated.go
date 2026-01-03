@@ -19,6 +19,8 @@ import (
 	"github.com/danielmiessler/fabric/internal/domain"
 	"github.com/danielmiessler/fabric/internal/plugins/ai/openai"
 	"github.com/danielmiessler/fabric/internal/plugins/db/fsdb"
+	"github.com/danielmiessler/fabric/internal/plugins/template"
+	"github.com/danielmiessler/fabric/internal/tools/converter"
 	"github.com/danielmiessler/fabric/internal/tools/youtube"
 	"github.com/gin-gonic/gin"
 )
@@ -961,5 +963,498 @@ func (h *DelegatedHandler) HandleDelegatedApplyPattern(c *gin.Context) {
 		Name:        pattern.Name,
 		Description: pattern.Description,
 		Pattern:     pattern.Pattern,
+	})
+}
+
+// =============================================================================
+// YouTube Extended Handlers
+// =============================================================================
+
+// HandleDelegatedYouTubeMetadata godoc
+// @Summary Get YouTube video metadata with delegated auth
+// @Description Get comprehensive metadata for a YouTube video (requires YouTube API key)
+// @Tags delegated
+// @Accept json
+// @Produce json
+// @Param X-AI-Token header string true "AI Token for credential exchange"
+// @Param request body DelegatedYouTubeMetadataRequest true "YouTube metadata request"
+// @Success 200 {object} DelegatedYouTubeMetadataResponse
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /delegated/youtube/metadata [post]
+func (h *DelegatedHandler) HandleDelegatedYouTubeMetadata(c *gin.Context) {
+	aiToken := c.GetHeader(AITokenHeader)
+	if aiToken == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing X-AI-Token header"})
+		return
+	}
+
+	if _, err := exchangeTokenForCredentials(aiToken); err != nil {
+		log.Printf("Token exchange failed: %v", err)
+		c.JSON(http.StatusUnauthorized, gin.H{"error": fmt.Sprintf("Token exchange failed: %v", err)})
+		return
+	}
+
+	var request DelegatedYouTubeMetadataRequest
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Invalid request: %v", err)})
+		return
+	}
+
+	if request.URL == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "url is required"})
+		return
+	}
+
+	yt := h.registry.YouTube
+
+	videoID, _, err := yt.GetVideoOrPlaylistId(request.URL)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if videoID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Could not extract video ID from URL"})
+		return
+	}
+
+	metadata, err := yt.GrabMetadata(videoID)
+	if err != nil {
+		log.Printf("YouTube metadata error: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to get metadata: %v", err)})
+		return
+	}
+
+	duration, _ := yt.GrabDuration(videoID)
+
+	c.JSON(http.StatusOK, DelegatedYouTubeMetadataResponse{
+		VideoId:      videoID,
+		Title:        metadata.Title,
+		Description:  metadata.Description,
+		ChannelTitle: metadata.ChannelTitle,
+		PublishedAt:  metadata.PublishedAt,
+		Duration:     duration,
+		ViewCount:    metadata.ViewCount,
+		LikeCount:    metadata.LikeCount,
+		Tags:         metadata.Tags,
+	})
+}
+
+// HandleDelegatedYouTubeComments godoc
+// @Summary Get YouTube video comments with delegated auth
+// @Description Get comments from a YouTube video (requires YouTube API key)
+// @Tags delegated
+// @Accept json
+// @Produce json
+// @Param X-AI-Token header string true "AI Token for credential exchange"
+// @Param request body DelegatedYouTubeCommentsRequest true "YouTube comments request"
+// @Success 200 {object} DelegatedYouTubeCommentsResponse
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /delegated/youtube/comments [post]
+func (h *DelegatedHandler) HandleDelegatedYouTubeComments(c *gin.Context) {
+	aiToken := c.GetHeader(AITokenHeader)
+	if aiToken == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing X-AI-Token header"})
+		return
+	}
+
+	if _, err := exchangeTokenForCredentials(aiToken); err != nil {
+		log.Printf("Token exchange failed: %v", err)
+		c.JSON(http.StatusUnauthorized, gin.H{"error": fmt.Sprintf("Token exchange failed: %v", err)})
+		return
+	}
+
+	var request DelegatedYouTubeCommentsRequest
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Invalid request: %v", err)})
+		return
+	}
+
+	if request.URL == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "url is required"})
+		return
+	}
+
+	yt := h.registry.YouTube
+
+	videoID, _, err := yt.GetVideoOrPlaylistId(request.URL)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if videoID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Could not extract video ID from URL"})
+		return
+	}
+
+	comments, err := yt.GrabComments(videoID)
+	if err != nil {
+		log.Printf("YouTube comments error: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to get comments: %v", err)})
+		return
+	}
+
+	c.JSON(http.StatusOK, DelegatedYouTubeCommentsResponse{
+		VideoId:  videoID,
+		Comments: comments,
+		Count:    len(comments),
+	})
+}
+
+// HandleDelegatedYouTubePlaylist godoc
+// @Summary Get YouTube playlist videos with delegated auth
+// @Description Get all videos in a YouTube playlist (requires YouTube API key)
+// @Tags delegated
+// @Accept json
+// @Produce json
+// @Param X-AI-Token header string true "AI Token for credential exchange"
+// @Param request body DelegatedYouTubePlaylistRequest true "YouTube playlist request"
+// @Success 200 {object} DelegatedYouTubePlaylistResponse
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /delegated/youtube/playlist [post]
+func (h *DelegatedHandler) HandleDelegatedYouTubePlaylist(c *gin.Context) {
+	aiToken := c.GetHeader(AITokenHeader)
+	if aiToken == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing X-AI-Token header"})
+		return
+	}
+
+	if _, err := exchangeTokenForCredentials(aiToken); err != nil {
+		log.Printf("Token exchange failed: %v", err)
+		c.JSON(http.StatusUnauthorized, gin.H{"error": fmt.Sprintf("Token exchange failed: %v", err)})
+		return
+	}
+
+	var request DelegatedYouTubePlaylistRequest
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Invalid request: %v", err)})
+		return
+	}
+
+	if request.URL == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "url is required"})
+		return
+	}
+
+	yt := h.registry.YouTube
+
+	_, playlistID, err := yt.GetVideoOrPlaylistId(request.URL)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if playlistID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "URL is not a playlist"})
+		return
+	}
+
+	videos, err := yt.FetchPlaylistVideos(playlistID)
+	if err != nil {
+		log.Printf("YouTube playlist error: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to get playlist: %v", err)})
+		return
+	}
+
+	var playlistVideos []PlaylistVideoInfo
+	for _, v := range videos {
+		playlistVideos = append(playlistVideos, PlaylistVideoInfo{
+			VideoId: v.VideoId,
+			Title:   v.Title,
+			URL:     fmt.Sprintf("https://www.youtube.com/watch?v=%s", v.VideoId),
+		})
+	}
+
+	c.JSON(http.StatusOK, DelegatedYouTubePlaylistResponse{
+		PlaylistId: playlistID,
+		Videos:     playlistVideos,
+		Count:      len(playlistVideos),
+	})
+}
+
+// =============================================================================
+// HTML Readability Handler
+// =============================================================================
+
+// HandleDelegatedReadability godoc
+// @Summary Extract readable content from HTML with delegated auth
+// @Description Extract clean, readable text content from raw HTML using readability parser
+// @Tags delegated
+// @Accept json
+// @Produce json
+// @Param X-AI-Token header string true "AI Token for credential exchange"
+// @Param request body DelegatedReadabilityRequest true "Readability request"
+// @Success 200 {object} DelegatedReadabilityResponse
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /delegated/readability [post]
+func (h *DelegatedHandler) HandleDelegatedReadability(c *gin.Context) {
+	aiToken := c.GetHeader(AITokenHeader)
+	if aiToken == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing X-AI-Token header"})
+		return
+	}
+
+	if _, err := exchangeTokenForCredentials(aiToken); err != nil {
+		log.Printf("Token exchange failed: %v", err)
+		c.JSON(http.StatusUnauthorized, gin.H{"error": fmt.Sprintf("Token exchange failed: %v", err)})
+		return
+	}
+
+	var request DelegatedReadabilityRequest
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Invalid request: %v", err)})
+		return
+	}
+
+	if request.HTML == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "html is required"})
+		return
+	}
+
+	content, err := converter.HtmlReadability(request.HTML)
+	if err != nil {
+		log.Printf("Readability error: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to extract content: %v", err)})
+		return
+	}
+
+	c.JSON(http.StatusOK, DelegatedReadabilityResponse{
+		Content: content,
+		URL:     request.URL,
+	})
+}
+
+// =============================================================================
+// Strategies & Contexts Handlers
+// =============================================================================
+
+// HandleDelegatedStrategies godoc
+// @Summary List available strategies with delegated auth
+// @Description Get list of all available strategies with their content
+// @Tags delegated
+// @Produce json
+// @Param X-AI-Token header string true "AI Token for credential exchange"
+// @Success 200 {object} DelegatedStrategiesResponse
+// @Failure 401 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /delegated/strategies [get]
+func (h *DelegatedHandler) HandleDelegatedStrategies(c *gin.Context) {
+	aiToken := c.GetHeader(AITokenHeader)
+	if aiToken == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing X-AI-Token header"})
+		return
+	}
+
+	if _, err := exchangeTokenForCredentials(aiToken); err != nil {
+		log.Printf("Token exchange failed: %v", err)
+		c.JSON(http.StatusUnauthorized, gin.H{"error": fmt.Sprintf("Token exchange failed: %v", err)})
+		return
+	}
+
+	strategies := h.registry.Strategy.GetStrategies()
+	var result []StrategyInfo
+	for name, content := range strategies {
+		result = append(result, StrategyInfo{
+			Name:    name,
+			Content: content,
+		})
+	}
+
+	c.JSON(http.StatusOK, DelegatedStrategiesResponse{
+		Strategies: result,
+		Count:      len(result),
+	})
+}
+
+// HandleDelegatedGetStrategy godoc
+// @Summary Get a specific strategy with delegated auth
+// @Description Get the content of a specific strategy by name
+// @Tags delegated
+// @Produce json
+// @Param X-AI-Token header string true "AI Token for credential exchange"
+// @Param name path string true "Strategy name"
+// @Success 200 {object} StrategyInfo
+// @Failure 401 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Router /delegated/strategies/{name} [get]
+func (h *DelegatedHandler) HandleDelegatedGetStrategy(c *gin.Context) {
+	aiToken := c.GetHeader(AITokenHeader)
+	if aiToken == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing X-AI-Token header"})
+		return
+	}
+
+	if _, err := exchangeTokenForCredentials(aiToken); err != nil {
+		log.Printf("Token exchange failed: %v", err)
+		c.JSON(http.StatusUnauthorized, gin.H{"error": fmt.Sprintf("Token exchange failed: %v", err)})
+		return
+	}
+
+	name := c.Param("name")
+	if name == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "strategy name is required"})
+		return
+	}
+
+	strategies := h.registry.Strategy.GetStrategies()
+	content, ok := strategies[name]
+	if !ok {
+		c.JSON(http.StatusNotFound, gin.H{"error": fmt.Sprintf("Strategy '%s' not found", name)})
+		return
+	}
+
+	c.JSON(http.StatusOK, StrategyInfo{
+		Name:    name,
+		Content: content,
+	})
+}
+
+// HandleDelegatedContexts godoc
+// @Summary List available contexts with delegated auth
+// @Description Get list of all available contexts with their content
+// @Tags delegated
+// @Produce json
+// @Param X-AI-Token header string true "AI Token for credential exchange"
+// @Success 200 {object} DelegatedContextsResponse
+// @Failure 401 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /delegated/contexts [get]
+func (h *DelegatedHandler) HandleDelegatedContexts(c *gin.Context) {
+	aiToken := c.GetHeader(AITokenHeader)
+	if aiToken == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing X-AI-Token header"})
+		return
+	}
+
+	if _, err := exchangeTokenForCredentials(aiToken); err != nil {
+		log.Printf("Token exchange failed: %v", err)
+		c.JSON(http.StatusUnauthorized, gin.H{"error": fmt.Sprintf("Token exchange failed: %v", err)})
+		return
+	}
+
+	contextNames, err := h.db.Contexts.GetNames()
+	if err != nil {
+		log.Printf("Error listing contexts: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to list contexts: %v", err)})
+		return
+	}
+
+	var result []ContextInfo
+	for _, name := range contextNames {
+		content, err := h.db.Contexts.Get(name)
+		if err != nil {
+			continue
+		}
+		result = append(result, ContextInfo{
+			Name:    name,
+			Content: content.Content,
+		})
+	}
+
+	c.JSON(http.StatusOK, DelegatedContextsResponse{
+		Contexts: result,
+		Count:    len(result),
+	})
+}
+
+// HandleDelegatedGetContext godoc
+// @Summary Get a specific context with delegated auth
+// @Description Get the content of a specific context by name
+// @Tags delegated
+// @Produce json
+// @Param X-AI-Token header string true "AI Token for credential exchange"
+// @Param name path string true "Context name"
+// @Success 200 {object} ContextInfo
+// @Failure 401 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Router /delegated/contexts/{name} [get]
+func (h *DelegatedHandler) HandleDelegatedGetContext(c *gin.Context) {
+	aiToken := c.GetHeader(AITokenHeader)
+	if aiToken == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing X-AI-Token header"})
+		return
+	}
+
+	if _, err := exchangeTokenForCredentials(aiToken); err != nil {
+		log.Printf("Token exchange failed: %v", err)
+		c.JSON(http.StatusUnauthorized, gin.H{"error": fmt.Sprintf("Token exchange failed: %v", err)})
+		return
+	}
+
+	name := c.Param("name")
+	if name == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "context name is required"})
+		return
+	}
+
+	context, err := h.db.Contexts.Get(name)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": fmt.Sprintf("Context '%s' not found", name)})
+		return
+	}
+
+	c.JSON(http.StatusOK, ContextInfo{
+		Name:    name,
+		Content: context.Content,
+	})
+}
+
+// =============================================================================
+// Template Plugin Handler
+// =============================================================================
+
+// HandleDelegatedTemplateApply godoc
+// @Summary Apply template plugins with delegated auth
+// @Description Process a template string with Fabric's template plugins (datetime, text, file, etc.)
+// @Tags delegated
+// @Accept json
+// @Produce json
+// @Param X-AI-Token header string true "AI Token for credential exchange"
+// @Param request body TemplatePluginRequest true "Template processing request"
+// @Success 200 {object} TemplatePluginResponse
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /delegated/template/apply [post]
+func (h *DelegatedHandler) HandleDelegatedTemplateApply(c *gin.Context) {
+	aiToken := c.GetHeader(AITokenHeader)
+	if aiToken == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing X-AI-Token header"})
+		return
+	}
+
+	if _, err := exchangeTokenForCredentials(aiToken); err != nil {
+		log.Printf("Token exchange failed: %v", err)
+		c.JSON(http.StatusUnauthorized, gin.H{"error": fmt.Sprintf("Token exchange failed: %v", err)})
+		return
+	}
+
+	var request TemplatePluginRequest
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Invalid request: %v", err)})
+		return
+	}
+
+	if request.Template == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "template is required"})
+		return
+	}
+
+	output, err := template.ApplyTemplate(request.Template, request.Variables, request.Input)
+	if err != nil {
+		log.Printf("Template processing error: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to process template: %v", err)})
+		return
+	}
+
+	c.JSON(http.StatusOK, TemplatePluginResponse{
+		Output:   output,
+		Template: request.Template,
 	})
 }

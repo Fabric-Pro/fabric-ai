@@ -21,6 +21,7 @@ import (
 	"github.com/danielmiessler/fabric/internal/plugins/db/fsdb"
 	"github.com/danielmiessler/fabric/internal/plugins/template"
 	"github.com/danielmiessler/fabric/internal/tools/converter"
+	"github.com/danielmiessler/fabric/internal/tools/jina"
 	"github.com/danielmiessler/fabric/internal/tools/youtube"
 	"github.com/gin-gonic/gin"
 )
@@ -33,11 +34,12 @@ type DelegatedHandler struct {
 
 // TokenExchangeResponse represents the response from Fabric's token exchange endpoint
 type TokenExchangeResponse struct {
-	ApiKey    string `json:"apiKey"`
-	Provider  string `json:"provider"`
-	Model     string `json:"model"`
-	BaseUrl   string `json:"baseUrl,omitempty"`
-	ExpiresIn int    `json:"expiresIn"`
+	ApiKey     string `json:"apiKey"`
+	Provider   string `json:"provider"`
+	Model      string `json:"model"`
+	BaseUrl    string `json:"baseUrl,omitempty"`
+	ExpiresIn  int    `json:"expiresIn"`
+	JinaApiKey string `json:"jinaApiKey,omitempty"` // Jina AI API key for web search/scraping
 }
 
 // DelegatedChatRequest extends ChatRequest with optional AI token for delegation
@@ -227,8 +229,8 @@ type DelegatedContextsResponse struct {
 
 const (
 	AITokenHeader       = "X-AI-Token"
-	FabricBaseURLEnvVar = "FABRIC_CALLBACK_URL"
-	DefaultFabricURL    = "http://localhost:3000"
+	FabricBaseURLEnvVar = "FABRIC_API_URL" // Use same env var as agents for consistency
+	DefaultFabricURL    = "http://localhost:3001"
 	ExchangeEndpoint    = "/api/ai/keys/exchange"
 )
 
@@ -734,8 +736,9 @@ func (h *DelegatedHandler) HandleDelegatedScrape(c *gin.Context) {
 		return
 	}
 
-	// Validate token by exchanging it
-	if _, err := exchangeTokenForCredentials(aiToken); err != nil {
+	// Exchange token for credentials (includes Jina API key if configured)
+	creds, err := exchangeTokenForCredentials(aiToken)
+	if err != nil {
 		log.Printf("Token exchange failed: %v", err)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": fmt.Sprintf("Token exchange failed: %v", err)})
 		return
@@ -752,8 +755,17 @@ func (h *DelegatedHandler) HandleDelegatedScrape(c *gin.Context) {
 		return
 	}
 
-	// Use the registry's Jina client
-	content, err := h.registry.Jina.ScrapeURL(request.URL)
+	var content string
+
+	// Use user's Jina API key if provided, otherwise fall back to registry
+	if creds.JinaApiKey != "" {
+		log.Printf("Using delegated Jina API key for scrape")
+		content, err = jina.ScrapeURLWithApiKey(request.URL, creds.JinaApiKey)
+	} else {
+		log.Printf("Using registry Jina client for scrape (no delegated key)")
+		content, err = h.registry.Jina.ScrapeURL(request.URL)
+	}
+
 	if err != nil {
 		log.Printf("Scrape error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to scrape URL: %v", err)})
@@ -787,8 +799,9 @@ func (h *DelegatedHandler) HandleDelegatedSearch(c *gin.Context) {
 		return
 	}
 
-	// Validate token by exchanging it
-	if _, err := exchangeTokenForCredentials(aiToken); err != nil {
+	// Exchange token for credentials (includes Jina API key if configured)
+	creds, err := exchangeTokenForCredentials(aiToken)
+	if err != nil {
 		log.Printf("Token exchange failed: %v", err)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": fmt.Sprintf("Token exchange failed: %v", err)})
 		return
@@ -805,8 +818,17 @@ func (h *DelegatedHandler) HandleDelegatedSearch(c *gin.Context) {
 		return
 	}
 
-	// Use the registry's Jina client for search
-	content, err := h.registry.Jina.ScrapeQuestion(request.Question)
+	var content string
+
+	// Use user's Jina API key if provided, otherwise fall back to registry
+	if creds.JinaApiKey != "" {
+		log.Printf("Using delegated Jina API key for search")
+		content, err = jina.ScrapeQuestionWithApiKey(request.Question, creds.JinaApiKey)
+	} else {
+		log.Printf("Using registry Jina client for search (no delegated key)")
+		content, err = h.registry.Jina.ScrapeQuestion(request.Question)
+	}
+
 	if err != nil {
 		log.Printf("Search error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to search: %v", err)})

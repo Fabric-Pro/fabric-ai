@@ -42,6 +42,22 @@ func (jc *Client) ScrapeQuestion(question string) (ret string, err error) {
 }
 
 func (jc *Client) request(requestURL string) (ret string, err error) {
+	// Use the client's default API key
+	return requestWithApiKey(requestURL, jc.ApiKey.Value)
+}
+
+// ScrapeURLWithApiKey scrapes a URL using a custom API key (for delegated execution)
+func ScrapeURLWithApiKey(url string, apiKey string) (ret string, err error) {
+	return requestWithApiKey(fmt.Sprintf("https://r.jina.ai/%s", url), apiKey)
+}
+
+// ScrapeQuestionWithApiKey searches the web using a custom API key (for delegated execution)
+func ScrapeQuestionWithApiKey(question string, apiKey string) (ret string, err error) {
+	return requestWithApiKey(fmt.Sprintf("https://s.jina.ai/%s", question), apiKey)
+}
+
+// requestWithApiKey makes a request to Jina AI with a specific API key
+func requestWithApiKey(requestURL string, apiKey string) (ret string, err error) {
 	var req *http.Request
 	if req, err = http.NewRequest("GET", requestURL, nil); err != nil {
 		err = fmt.Errorf("error creating request: %w", err)
@@ -49,8 +65,8 @@ func (jc *Client) request(requestURL string) (ret string, err error) {
 	}
 
 	// if api keys exist, set the header
-	if jc.ApiKey.Value != "" {
-		req.Header.Set("Authorization", "Bearer "+jc.ApiKey.Value)
+	if apiKey != "" {
+		req.Header.Set("Authorization", "Bearer "+apiKey)
 	}
 
 	client := &http.Client{}

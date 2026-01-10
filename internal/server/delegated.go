@@ -22,6 +22,7 @@ import (
 	"github.com/danielmiessler/fabric/internal/plugins/template"
 	"github.com/danielmiessler/fabric/internal/tools/converter"
 	"github.com/danielmiessler/fabric/internal/tools/jina"
+	"github.com/danielmiessler/fabric/internal/tools/mcpcli"
 	"github.com/danielmiessler/fabric/internal/tools/youtube"
 	"github.com/gin-gonic/gin"
 )
@@ -272,6 +273,12 @@ func NewDelegatedHandler(r *gin.Engine, registry *core.PluginRegistry, db *fsdb.
 
 		// Template plugins
 		delegated.POST("/template/apply", handler.HandleDelegatedTemplateApply)
+
+		// MCP CLI - Dynamic MCP server discovery and tool execution
+		delegated.POST("/mcp-cli/list", handler.HandleMcpCliList)
+		delegated.POST("/mcp-cli/grep", handler.HandleMcpCliGrep)
+		delegated.POST("/mcp-cli/schema", handler.HandleMcpCliSchema)
+		delegated.POST("/mcp-cli/call", handler.HandleMcpCliCall)
 	}
 
 	return handler
@@ -1479,5 +1486,299 @@ func (h *DelegatedHandler) HandleDelegatedTemplateApply(c *gin.Context) {
 	c.JSON(http.StatusOK, TemplatePluginResponse{
 		Output:   output,
 		Template: request.Template,
+	})
+}
+
+// =============================================================================
+// MCP CLI Handlers - Dynamic MCP Server Discovery and Tool Execution
+// =============================================================================
+
+// McpCliListRequest represents a request to list MCP servers
+type McpCliListRequest struct {
+	WithDescriptions bool `json:"withDescriptions,omitempty"`
+}
+
+// McpCliListResponse represents the list of MCP servers and tools
+type McpCliListResponse struct {
+	Servers []McpCliServerInfo `json:"servers"`
+	Count   int                `json:"count"`
+}
+
+// McpCliServerInfo represents an MCP server with its tools
+type McpCliServerInfo struct {
+	Name  string           `json:"name"`
+	Tools []McpCliToolInfo `json:"tools"`
+}
+
+// McpCliToolInfo represents an MCP tool
+type McpCliToolInfo struct {
+	Name        string                 `json:"name"`
+	Server      string                 `json:"server"`
+	Description string                 `json:"description,omitempty"`
+	InputSchema map[string]interface{} `json:"inputSchema,omitempty"`
+}
+
+// McpCliGrepRequest represents a request to search for tools
+type McpCliGrepRequest struct {
+	Pattern          string `json:"pattern" binding:"required"`
+	WithDescriptions bool   `json:"withDescriptions,omitempty"`
+}
+
+// McpCliGrepResponse represents the search results
+type McpCliGrepResponse struct {
+	Tools []McpCliToolInfo `json:"tools"`
+	Count int              `json:"count"`
+}
+
+// McpCliSchemaRequest represents a request to get a tool's schema
+type McpCliSchemaRequest struct {
+	ServerTool string `json:"serverTool" binding:"required"` // Format: server/tool
+}
+
+// McpCliSchemaResponse represents a tool's schema
+type McpCliSchemaResponse struct {
+	Name        string                 `json:"name"`
+	Server      string                 `json:"server"`
+	Description string                 `json:"description,omitempty"`
+	InputSchema map[string]interface{} `json:"inputSchema,omitempty"`
+}
+
+// McpCliCallRequest represents a request to call an MCP tool
+type McpCliCallRequest struct {
+	ServerTool string                 `json:"serverTool" binding:"required"` // Format: server/tool
+	Arguments  map[string]interface{} `json:"arguments,omitempty"`
+}
+
+// McpCliCallResponse represents the result of calling an MCP tool
+type McpCliCallResponse struct {
+	Content interface{} `json:"content"`
+	IsError bool        `json:"isError,omitempty"`
+	Error   string      `json:"error,omitempty"`
+}
+
+// HandleMcpCliList godoc
+// @Summary List all MCP servers and tools
+// @Description List all available MCP servers and their tools using mcp-cli
+// @Tags delegated,mcp-cli
+// @Accept json
+// @Produce json
+// @Param X-AI-Token header string true "AI Token for credential exchange"
+// @Param request body McpCliListRequest false "List options"
+// @Success 200 {object} McpCliListResponse
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /delegated/mcp-cli/list [post]
+func (h *DelegatedHandler) HandleMcpCliList(c *gin.Context) {
+	aiToken := c.GetHeader(AITokenHeader)
+	if aiToken == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing X-AI-Token header"})
+		return
+	}
+
+	if _, err := exchangeTokenForCredentials(aiToken); err != nil {
+		log.Printf("Token exchange failed: %v", err)
+		c.JSON(http.StatusUnauthorized, gin.H{"error": fmt.Sprintf("Token exchange failed: %v", err)})
+		return
+	}
+
+	var request McpCliListRequest
+	// Ignore binding errors - use defaults if no body
+	_ = c.BindJSON(&request)
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 60*time.Second)
+	defer cancel()
+
+	servers, err := mcpcli.ListServers(ctx, "", request.WithDescriptions)
+	if err != nil {
+		log.Printf("MCP CLI list error: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to list MCP servers: %v", err)})
+		return
+	}
+
+	// Convert to response format
+	responseServers := make([]McpCliServerInfo, len(servers))
+	for i, s := range servers {
+		tools := make([]McpCliToolInfo, len(s.Tools))
+		for j, t := range s.Tools {
+			tools[j] = McpCliToolInfo{
+				Name:        t.Name,
+				Server:      t.Server,
+				Description: t.Description,
+				InputSchema: t.InputSchema,
+			}
+		}
+		responseServers[i] = McpCliServerInfo{
+			Name:  s.Name,
+			Tools: tools,
+		}
+	}
+
+	c.JSON(http.StatusOK, McpCliListResponse{
+		Servers: responseServers,
+		Count:   len(responseServers),
+	})
+}
+
+// HandleMcpCliGrep godoc
+// @Summary Search for MCP tools by pattern
+// @Description Search for tools across all MCP servers using glob pattern matching
+// @Tags delegated,mcp-cli
+// @Accept json
+// @Produce json
+// @Param X-AI-Token header string true "AI Token for credential exchange"
+// @Param request body McpCliGrepRequest true "Search request"
+// @Success 200 {object} McpCliGrepResponse
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /delegated/mcp-cli/grep [post]
+func (h *DelegatedHandler) HandleMcpCliGrep(c *gin.Context) {
+	aiToken := c.GetHeader(AITokenHeader)
+	if aiToken == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing X-AI-Token header"})
+		return
+	}
+
+	if _, err := exchangeTokenForCredentials(aiToken); err != nil {
+		log.Printf("Token exchange failed: %v", err)
+		c.JSON(http.StatusUnauthorized, gin.H{"error": fmt.Sprintf("Token exchange failed: %v", err)})
+		return
+	}
+
+	var request McpCliGrepRequest
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Invalid request: %v", err)})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 60*time.Second)
+	defer cancel()
+
+	tools, err := mcpcli.GrepTools(ctx, "", request.Pattern, request.WithDescriptions)
+	if err != nil {
+		log.Printf("MCP CLI grep error: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to search tools: %v", err)})
+		return
+	}
+
+	// Convert to response format
+	responseTools := make([]McpCliToolInfo, len(tools))
+	for i, t := range tools {
+		responseTools[i] = McpCliToolInfo{
+			Name:        t.Name,
+			Server:      t.Server,
+			Description: t.Description,
+			InputSchema: t.InputSchema,
+		}
+	}
+
+	c.JSON(http.StatusOK, McpCliGrepResponse{
+		Tools: responseTools,
+		Count: len(responseTools),
+	})
+}
+
+// HandleMcpCliSchema godoc
+// @Summary Get schema for an MCP tool
+// @Description Get the JSON input schema for a specific MCP tool
+// @Tags delegated,mcp-cli
+// @Accept json
+// @Produce json
+// @Param X-AI-Token header string true "AI Token for credential exchange"
+// @Param request body McpCliSchemaRequest true "Schema request"
+// @Success 200 {object} McpCliSchemaResponse
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /delegated/mcp-cli/schema [post]
+func (h *DelegatedHandler) HandleMcpCliSchema(c *gin.Context) {
+	aiToken := c.GetHeader(AITokenHeader)
+	if aiToken == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing X-AI-Token header"})
+		return
+	}
+
+	if _, err := exchangeTokenForCredentials(aiToken); err != nil {
+		log.Printf("Token exchange failed: %v", err)
+		c.JSON(http.StatusUnauthorized, gin.H{"error": fmt.Sprintf("Token exchange failed: %v", err)})
+		return
+	}
+
+	var request McpCliSchemaRequest
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Invalid request: %v", err)})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 30*time.Second)
+	defer cancel()
+
+	tool, err := mcpcli.GetToolSchema(ctx, "", request.ServerTool)
+	if err != nil {
+		log.Printf("MCP CLI schema error: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to get tool schema: %v", err)})
+		return
+	}
+
+	c.JSON(http.StatusOK, McpCliSchemaResponse{
+		Name:        tool.Name,
+		Server:      tool.Server,
+		Description: tool.Description,
+		InputSchema: tool.InputSchema,
+	})
+}
+
+// HandleMcpCliCall godoc
+// @Summary Call an MCP tool
+// @Description Execute an MCP tool with the provided arguments
+// @Tags delegated,mcp-cli
+// @Accept json
+// @Produce json
+// @Param X-AI-Token header string true "AI Token for credential exchange"
+// @Param request body McpCliCallRequest true "Call request"
+// @Success 200 {object} McpCliCallResponse
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /delegated/mcp-cli/call [post]
+func (h *DelegatedHandler) HandleMcpCliCall(c *gin.Context) {
+	aiToken := c.GetHeader(AITokenHeader)
+	if aiToken == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing X-AI-Token header"})
+		return
+	}
+
+	if _, err := exchangeTokenForCredentials(aiToken); err != nil {
+		log.Printf("Token exchange failed: %v", err)
+		c.JSON(http.StatusUnauthorized, gin.H{"error": fmt.Sprintf("Token exchange failed: %v", err)})
+		return
+	}
+
+	var request McpCliCallRequest
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Invalid request: %v", err)})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 120*time.Second)
+	defer cancel()
+
+	args := request.Arguments
+	if args == nil {
+		args = make(map[string]interface{})
+	}
+
+	result, err := mcpcli.CallTool(ctx, "", request.ServerTool, args)
+	if err != nil {
+		log.Printf("MCP CLI call error: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to call tool: %v", err)})
+		return
+	}
+
+	c.JSON(http.StatusOK, McpCliCallResponse{
+		Content: result.Content,
+		IsError: result.IsError,
+		Error:   result.Error,
 	})
 }

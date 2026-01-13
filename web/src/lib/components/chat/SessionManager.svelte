@@ -1,50 +1,58 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { RotateCcw, Trash2, Save, Copy, File as FileIcon } from 'lucide-svelte';
-  import { sessions, sessionAPI } from '$lib/store/session-store';
-  import { chatState, clearMessages, revertLastMessage, currentSession, messageStore } from '$lib/store/chat-store';
-  import { Button } from '$lib/components/ui/button';
-  import { toastService } from '$lib/services/toast-service';
-  
-  let sessionsList: string[] = [];
-  $: sessionName = $currentSession;
-  $: if ($sessions) {
-    sessionsList = $sessions.map(s => s.Name);
-  }
-  
-  onMount(async () => {
-    try {
-      await sessionAPI.loadSessions();
-    } catch (error) {
-      console.error('Failed to load sessions:', error);
-    }
-  });
-  
-  async function saveSession() {
-    try {
-      await sessionAPI.exportToFile($chatState.messages);
-    } catch (error) {
-      console.error('Failed to save session:', error);
-    }
-  }
+import { onMount } from "svelte";
+import { RotateCcw, Trash2, Save, Copy, File as FileIcon } from "lucide-svelte";
+import { sessions, sessionAPI } from "$lib/store/session-store";
+import {
+	chatState,
+	clearMessages,
+	revertLastMessage,
+	currentSession,
+	messageStore,
+} from "$lib/store/chat-store";
+import { Button } from "$lib/components/ui/button";
+import { toastService } from "$lib/services/toast-service";
 
-  async function loadSession() {
-    try {
-      const messages = await sessionAPI.importFromFile();
-      messageStore.set(messages);
-    } catch (error) {
-      console.error('Failed to load session:', error);
-    }
-  }
+let sessionsList: string[] = [];
+$: sessionName = $currentSession;
+$: if ($sessions) {
+	sessionsList = $sessions.map((s) => s.Name);
+}
 
-  async function copyToClipboard() {
-    try {
-      await navigator.clipboard.writeText($chatState.messages.map(m => m.content).join('\n'));
-      toastService.success('Chat copied to clipboard!');
-    } catch (err) {
-      toastService.error('Failed to copy transcript');
-    }
-  }
+onMount(async () => {
+	try {
+		await sessionAPI.loadSessions();
+	} catch (error) {
+		console.error("Failed to load sessions:", error);
+	}
+});
+
+async function saveSession() {
+	try {
+		await sessionAPI.exportToFile($chatState.messages);
+	} catch (error) {
+		console.error("Failed to save session:", error);
+	}
+}
+
+async function loadSession() {
+	try {
+		const messages = await sessionAPI.importFromFile();
+		messageStore.set(messages);
+	} catch (error) {
+		console.error("Failed to load session:", error);
+	}
+}
+
+async function copyToClipboard() {
+	try {
+		await navigator.clipboard.writeText(
+			$chatState.messages.map((m) => m.content).join("\n"),
+		);
+		toastService.success("Chat copied to clipboard!");
+	} catch (err) {
+		toastService.error("Failed to copy transcript");
+	}
+}
 </script>
 
 <div class="p-1 m-1 mr-2">

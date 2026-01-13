@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Contact } from 'lucide-svelte';
+import { Contact } from "lucide-svelte";
 </script>
 
 <div class="form-control w-full m-auto p-4 rounded-lg bg-gradient-to-br variant-gradient-success-warning shadow-lg text-current" title="contact form">

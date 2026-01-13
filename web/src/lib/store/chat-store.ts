@@ -121,7 +121,10 @@ export async function sendMessage(
 				hasSystemPrompt: !!systemPromptText,
 			});
 
-			const stream = await chatService.streamChat(content, systemPromptText);
+			const stream = await chatService.streamChat(
+				content,
+				systemPromptText,
+			);
 			console.log("4. Stream created");
 
 			await chatService.processStream(

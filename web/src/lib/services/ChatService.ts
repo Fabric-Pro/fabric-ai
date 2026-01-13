@@ -81,7 +81,11 @@ export class ChatService {
 			return this.createMessageStream(reader);
 		} catch (error) {
 			if (error instanceof ChatError) throw error;
-			throw new ChatError("Failed to fetch chat stream", "FETCH_ERROR", error);
+			throw new ChatError(
+				"Failed to fetch chat stream",
+				"FETCH_ERROR",
+				error,
+			);
 		}
 	}
 
@@ -122,7 +126,9 @@ export class ChatService {
 					"sequenceDiagram",
 					"classDiagram",
 					"stateDiagram",
-				].some((starter) => response.content.trim().startsWith(starter));
+				].some((starter) =>
+					response.content.trim().startsWith(starter),
+				);
 
 				response.format = isMermaid ? "mermaid" : "markdown";
 			}
@@ -149,11 +155,16 @@ export class ChatService {
 							buffer = messages.pop() || "";
 							for (const msg of messages) {
 								try {
-									let response = JSON.parse(msg.slice(6)) as StreamResponse;
+									let response = JSON.parse(
+										msg.slice(6),
+									) as StreamResponse;
 									response = processResponse(response);
 									controller.enqueue(response);
 								} catch (parseError) {
-									console.error("Error parsing stream message:", parseError);
+									console.error(
+										"Error parsing stream message:",
+										parseError,
+									);
 								}
 							}
 						}
@@ -161,16 +172,25 @@ export class ChatService {
 
 					if (buffer.startsWith("data: ")) {
 						try {
-							let response = JSON.parse(buffer.slice(6)) as StreamResponse;
+							let response = JSON.parse(
+								buffer.slice(6),
+							) as StreamResponse;
 							response = processResponse(response);
 							controller.enqueue(response);
 						} catch (parseError) {
-							console.error("Error parsing final message:", parseError);
+							console.error(
+								"Error parsing final message:",
+								parseError,
+							);
 						}
 					}
 				} catch (error) {
 					controller.error(
-						new ChatError("Stream processing error", "STREAM_ERROR", error),
+						new ChatError(
+							"Stream processing error",
+							"STREAM_ERROR",
+							error,
+						),
 					);
 				} finally {
 					reader.releaseLock();
@@ -247,7 +267,10 @@ export class ChatService {
 		userInput: string,
 		systemPromptText?: string,
 	): Promise<ReadableStream<StreamResponse>> {
-		const request = await this.createChatRequest(userInput, systemPromptText);
+		const request = await this.createChatRequest(
+			userInput,
+			systemPromptText,
+		);
 		return this.fetchStream(request);
 	}
 
@@ -275,7 +298,11 @@ export class ChatService {
 			onError(
 				error instanceof ChatError
 					? error
-					: new ChatError("Stream processing error", "STREAM_ERROR", error),
+					: new ChatError(
+							"Stream processing error",
+							"STREAM_ERROR",
+							error,
+						),
 			);
 		} finally {
 			reader.releaseLock();

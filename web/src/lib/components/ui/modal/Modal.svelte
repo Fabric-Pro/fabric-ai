@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { fade, scale } from 'svelte/transition';
-  import { createEventDispatcher } from 'svelte';
+import { fade, scale } from "svelte/transition";
+import { createEventDispatcher } from "svelte";
 
-  const dispatch = createEventDispatcher<{
-    close: void;
-  }>();
+const dispatch = createEventDispatcher<{
+	close: void;
+}>();
 
-  export let show = false;
+export let show = false;
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-noninteractive-element-interactions a11y-no-static-element-interactions -->

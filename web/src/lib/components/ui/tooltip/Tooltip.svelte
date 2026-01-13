@@ -1,17 +1,17 @@
 <script lang="ts">
-  export let text: string;
-  export let position: 'top' | 'bottom' | 'left' | 'right' = 'top';
+export let text: string;
+export let position: "top" | "bottom" | "left" | "right" = "top";
 
-  let tooltipVisible = false;
-  let tooltipElement: HTMLDivElement;
+let tooltipVisible = false;
+let tooltipElement: HTMLDivElement;
 
-  function showTooltip() {
-    tooltipVisible = true;
-  }
+function showTooltip() {
+	tooltipVisible = true;
+}
 
-  function hideTooltip() {
-    tooltipVisible = false;
-  }
+function hideTooltip() {
+	tooltipVisible = false;
+}
 </script>
 
 <!-- svelte-ignore a11y-no-noninteractive-element-interactions a11y-mouse-events-have-key-events -->

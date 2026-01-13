@@ -1,5 +1,5 @@
 <script>
-  import Content from './contact.md'
+import Content from "./contact.md";
 </script>
 
 {#if Content}

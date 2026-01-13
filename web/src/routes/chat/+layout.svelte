@@ -1,10 +1,10 @@
 <script>
-  import { disableScrollHandling } from "$app/navigation";
-  import { onMount } from "svelte";
+import { disableScrollHandling } from "$app/navigation";
+import { onMount } from "svelte";
 
-  onMount(() => {
-    disableScrollHandling();
-  });
+onMount(() => {
+	disableScrollHandling();
+});
 </script>
 
 <div id="page" class="page-wrapper">

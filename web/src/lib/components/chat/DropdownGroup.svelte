@@ -1,48 +1,56 @@
 <script lang="ts">
-  import Patterns from "./Patterns.svelte";
-  import Models from "./Models.svelte";
-  import ModelConfig from "./ModelConfig.svelte";
-  import { Select } from "$lib/components/ui/select";
-  import { Input } from "$lib/components/ui/input";
-  import { Label } from "$lib/components/ui/label";
-  import { languageStore } from '$lib/store/language-store';
-  import { strategies, selectedStrategy, fetchStrategies } from '$lib/store/strategy-store';
-  import { patternVariables } from '$lib/store/pattern-store';
-  import { onMount } from 'svelte';
+import Patterns from "./Patterns.svelte";
+import Models from "./Models.svelte";
+import ModelConfig from "./ModelConfig.svelte";
+import { Select } from "$lib/components/ui/select";
+import { Input } from "$lib/components/ui/input";
+import { Label } from "$lib/components/ui/label";
+import { languageStore } from "$lib/store/language-store";
+import {
+	strategies,
+	selectedStrategy,
+	fetchStrategies,
+} from "$lib/store/strategy-store";
+import { patternVariables } from "$lib/store/pattern-store";
+import { onMount } from "svelte";
 
-  const languages = [
-    { code: '', name: 'Default Language' },
-    { code: 'en', name: 'English' },
-    { code: 'fr', name: 'French' },
-    { code: 'es', name: 'Spanish' },
-    { code: 'de', name: 'German' },
-    { code: 'zh', name: 'Chinese' },
-    { code: 'ja', name: 'Japanese' },
-    { code: 'it', name: 'Italian' }
-  ];
+const languages = [
+	{ code: "", name: "Default Language" },
+	{ code: "en", name: "English" },
+	{ code: "fr", name: "French" },
+	{ code: "es", name: "Spanish" },
+	{ code: "de", name: "German" },
+	{ code: "zh", name: "Chinese" },
+	{ code: "ja", name: "Japanese" },
+	{ code: "it", name: "Italian" },
+];
 
-  let variablesJsonString = '';
+let variablesJsonString = "";
 
-  // Parse JSON string and update variables store
-  function updateVariables() {
-    try {
-      if (variablesJsonString.trim() === '') {
-        patternVariables.set({});
-      } else {
-        const parsed = JSON.parse(variablesJsonString);
-        if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
-          patternVariables.set(parsed);
-        }
-      }
-    } catch (e) {
-      // Don't update the store if JSON is invalid - just ignore the error
-      // This allows partial typing without breaking
-    }
-  }
+// Parse JSON string and update variables store
+function updateVariables() {
+	try {
+		if (variablesJsonString.trim() === "") {
+			patternVariables.set({});
+		} else {
+			const parsed = JSON.parse(variablesJsonString);
+			if (
+				typeof parsed === "object" &&
+				parsed !== null &&
+				!Array.isArray(parsed)
+			) {
+				patternVariables.set(parsed);
+			}
+		}
+	} catch (e) {
+		// Don't update the store if JSON is invalid - just ignore the error
+		// This allows partial typing without breaking
+	}
+}
 
-  onMount(() => {
-    fetchStrategies();
-  });
+onMount(() => {
+	fetchStrategies();
+});
 </script>
 
 <div class="flex gap-4">

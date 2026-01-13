@@ -1,27 +1,27 @@
 <script>
-  import { onMount } from 'svelte';
+import { onMount } from "svelte";
 
-  let toc = [];
+let toc = [];
 
-  onMount(() => {
-    // Get all headings from the content
-    const article = document.querySelector('article');
-    if (article) {
-      const headings = article.querySelectorAll('h1, h2, h3, h4, h5, h6');
-      toc = Array.from(headings).map(heading => ({
-        id: heading.id,
-        text: heading.textContent,
-        level: parseInt(heading.tagName.charAt(1))
-      }));
-    }
-  });
+onMount(() => {
+	// Get all headings from the content
+	const article = document.querySelector("article");
+	if (article) {
+		const headings = article.querySelectorAll("h1, h2, h3, h4, h5, h6");
+		toc = Array.from(headings).map((heading) => ({
+			id: heading.id,
+			text: heading.textContent,
+			level: parseInt(heading.tagName.charAt(1)),
+		}));
+	}
+});
 
-  function scrollToSection(id) {
-    const element = document.getElementById(id);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  }
+function scrollToSection(id) {
+	const element = document.getElementById(id);
+	if (element) {
+		element.scrollIntoView({ behavior: "smooth", block: "center" });
+	}
+}
 </script>
 
 <nav class="hidden lg:block w-64 fixed top-24 right-[max(0px,calc(50%-45rem))] max-h-[calc(80vh-5rem)] overflow-y-auto">

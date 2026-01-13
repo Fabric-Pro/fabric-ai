@@ -1,22 +1,24 @@
 <script>
-  import '../app.postcss';
-  import { AppShell } from '@skeletonlabs/skeleton';
-  import ToastContainer from '$lib/components/ui/toast/ToastContainer.svelte';
-  import Footer from '$lib/components/home/Footer.svelte';
-  import Header from '$lib/components/home/Header.svelte';
-  import { initializeStores, getDrawerStore } from '@skeletonlabs/skeleton';
-  import { page } from '$app/stores';
-  import { fly } from 'svelte/transition';
-  import { onMount } from 'svelte';
-  import { toastStore } from '$lib/store/toast-store';
+import "../app.postcss";
+import { AppShell } from "@skeletonlabs/skeleton";
+import ToastContainer from "$lib/components/ui/toast/ToastContainer.svelte";
+import Footer from "$lib/components/home/Footer.svelte";
+import Header from "$lib/components/home/Header.svelte";
+import { initializeStores, getDrawerStore } from "@skeletonlabs/skeleton";
+import { page } from "$app/stores";
+import { fly } from "svelte/transition";
+import { onMount } from "svelte";
+import { toastStore } from "$lib/store/toast-store";
 
-  // Initialize stores
-  initializeStores();
-  const drawerStore = getDrawerStore();
+// Initialize stores
+initializeStores();
+const drawerStore = getDrawerStore();
 
-  onMount(() => {
-    toastStore.info("👋 Welcome to the site! Tell people about yourself and what you do.");
-  });
+onMount(() => {
+	toastStore.info(
+		"👋 Welcome to the site! Tell people about yourself and what you do.",
+	);
+});
 </script>
 
 <ToastContainer />

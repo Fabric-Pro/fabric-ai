@@ -1,12 +1,12 @@
 <script>
-  export let aliases
-  export let date 
-  export let tags
-  export let title
-  export let description
-  export let author
-  export let updated
-  //export let content
+export let aliases;
+export let date;
+export let tags;
+export let title;
+export let description;
+export let author;
+export let updated;
+//export let content
 </script>
 
 <article class="prose prose-slate dark:prose-invert max-w-5xl flex-1">

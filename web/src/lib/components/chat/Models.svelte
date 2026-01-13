@@ -1,11 +1,15 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { Select } from "$lib/components/ui/select";
-  import { modelConfig, availableModels, loadAvailableModels } from "$lib/store/model-store";
+import { onMount } from "svelte";
+import { Select } from "$lib/components/ui/select";
+import {
+	modelConfig,
+	availableModels,
+	loadAvailableModels,
+} from "$lib/store/model-store";
 
-  onMount(async () => {
-    await loadAvailableModels();
-  });
+onMount(async () => {
+	await loadAvailableModels();
+});
 </script>
 
 <div class="min-w-0">

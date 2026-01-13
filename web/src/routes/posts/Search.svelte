@@ -1,41 +1,43 @@
 <script lang="ts">
-  import { formatDistance } from 'date-fns';
-  import type { PageData } from './$types';
-  import Card from '$lib/components/ui/cards/card.svelte';
-  import { slide } from 'svelte/transition';
-  import { elasticOut, quintOut } from 'svelte/easing';
-  import { InputChip } from '@skeletonlabs/skeleton';
+import { formatDistance } from "date-fns";
+import type { PageData } from "./$types";
+import Card from "$lib/components/ui/cards/card.svelte";
+import { slide } from "svelte/transition";
+import { elasticOut, quintOut } from "svelte/easing";
+import { InputChip } from "@skeletonlabs/skeleton";
 
-  let cards = false;
-  let searchQuery = '';
-  let selectedTags: string[] = [];
-  let allTags: string[] = [];
+let cards = false;
+let searchQuery = "";
+let selectedTags: string[] = [];
+let allTags: string[] = [];
 
-  export let data: PageData;
-  $: posts = data.posts;
+export let data: PageData;
+$: posts = data.posts;
 
-  // Extract all unique tags from Posts
-  $: {
-    const tagSet = new Set<string>();
-    posts.forEach(post => {
-      post.meta.tags.forEach(tag => tagSet.add(tag));
-    });
-    allTags = Array.from(tagSet);
-  }
+// Extract all unique tags from Posts
+$: {
+	const tagSet = new Set<string>();
+	posts.forEach((post) => {
+		post.meta.tags.forEach((tag) => tagSet.add(tag));
+	});
+	allTags = Array.from(tagSet);
+}
 
-  // Filter posts based on selected tags-container
-  $: filteredPosts = posts.filter(post => {
-    if (selectedTags.length === 0) return true;
-    return selectedTags.every(tag =>
-      post.meta.tags.some(postTag => postTag.toLowerCase() === tag.toLowerCase())
-    );
-  });
+// Filter posts based on selected tags-container
+$: filteredPosts = posts.filter((post) => {
+	if (selectedTags.length === 0) return true;
+	return selectedTags.every((tag) =>
+		post.meta.tags.some(
+			(postTag) => postTag.toLowerCase() === tag.toLowerCase(),
+		),
+	);
+});
 
-  function validateTag(value: string): boolean {
-    return allTags.some(tag => tag.toLowerCase() === value.toLowerCase());
-  }
+function validateTag(value: string): boolean {
+	return allTags.some((tag) => tag.toLowerCase() === value.toLowerCase());
+}
 
-  let visible: boolean = true;
+let visible: boolean = true;
 </script>
 
 <!-- This file can be deleted, It think it has better search functionality but it needs work to ...work

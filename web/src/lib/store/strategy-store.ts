@@ -1,10 +1,12 @@
-import { writable } from 'svelte/store';
+import { writable } from "svelte/store";
 
 /**
  * List of available strategies fetched from backend.
  * Each strategy has a name and description.
  */
-export const strategies = writable<Array<{ name: string; description: string }>>([]);
+export const strategies = writable<
+	Array<{ name: string; description: string }>
+>([]);
 
 /**
  * Currently selected strategy name.
@@ -17,16 +19,16 @@ export const selectedStrategy = writable<string>("");
  * Populates the `strategies` store.
  */
 export async function fetchStrategies() {
-  try {
-    const response = await fetch('/strategies/strategies.json');
-    if (!response.ok) {
-      console.error('Failed to fetch strategies:', response.statusText);
-      return;
-    }
-    const data = await response.json();
-    // Expecting an array of { name, description }
-    strategies.set(data);
-  } catch (error) {
-    console.error('Error fetching strategies:', error);
-  }
+	try {
+		const response = await fetch("/strategies/strategies.json");
+		if (!response.ok) {
+			console.error("Failed to fetch strategies:", response.statusText);
+			return;
+		}
+		const data = await response.json();
+		// Expecting an array of { name, description }
+		strategies.set(data);
+	} catch (error) {
+		console.error("Error fetching strategies:", error);
+	}
 }

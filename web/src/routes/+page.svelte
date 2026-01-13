@@ -1,16 +1,16 @@
 <script lang="ts">
-  import Terminal from '$lib/components/terminal/Terminal.svelte';
-  import Connections from '$lib/components/ui/connections/Connections.svelte';
-  import { slide } from 'svelte/transition';
-  import { quintOut } from 'svelte/easing';
-  
-  let augemented = false;
-  let showTerminal = false;
+import Terminal from "$lib/components/terminal/Terminal.svelte";
+import Connections from "$lib/components/ui/connections/Connections.svelte";
+import { slide } from "svelte/transition";
+import { quintOut } from "svelte/easing";
 
-  setTimeout(() => {
-    augemented = true;
-    showTerminal = true;
-  }, 1000);
+let augemented = false;
+let showTerminal = false;
+
+setTimeout(() => {
+	augemented = true;
+	showTerminal = true;
+}, 1000);
 </script>
 
 <div class="absolute inset-0 -z-10 overflow-hidden h-96">

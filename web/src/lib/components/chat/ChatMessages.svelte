@@ -1,96 +1,94 @@
 <script lang="ts">
-  import { chatState, errorStore, streamingStore } from '$lib/store/chat-store';
-  import { afterUpdate, onMount } from 'svelte';
-  import { toastStore } from '$lib/store/toast-store';
-  import { marked } from 'marked';
-  import SessionManager from './SessionManager.svelte';
-  import { fade, slide } from 'svelte/transition';
-  import { ArrowDown } from 'lucide-svelte';
-  import Modal from '$lib/components/ui/modal/Modal.svelte';
-  import PatternList from '$lib/components/patterns/PatternList.svelte';
-  import type { Message } from '$lib/interfaces/chat-interface';
-  import { get } from 'svelte/store';
-  import { selectedPatternName } from '$lib/store/pattern-store';
+import { chatState, errorStore, streamingStore } from "$lib/store/chat-store";
+import { afterUpdate, onMount } from "svelte";
+import { toastStore } from "$lib/store/toast-store";
+import { marked } from "marked";
+import SessionManager from "./SessionManager.svelte";
+import { fade, slide } from "svelte/transition";
+import { ArrowDown } from "lucide-svelte";
+import Modal from "$lib/components/ui/modal/Modal.svelte";
+import PatternList from "$lib/components/patterns/PatternList.svelte";
+import type { Message } from "$lib/interfaces/chat-interface";
+import { get } from "svelte/store";
+import { selectedPatternName } from "$lib/store/pattern-store";
 
+let showPatternModal = false;
 
-  let showPatternModal = false;
+let messagesContainer: HTMLDivElement | null = null;
+let showScrollButton = false;
+let isUserMessage = false;
 
-  let messagesContainer: HTMLDivElement | null = null;
-  let showScrollButton = false;
-  let isUserMessage = false;
+function scrollToBottom() {
+	if (messagesContainer) {
+		messagesContainer.scrollTo({
+			top: messagesContainer.scrollHeight,
+			behavior: "smooth",
+		});
+	}
+}
 
-  function scrollToBottom() {
-    if (messagesContainer) {
-      messagesContainer.scrollTo({ top: messagesContainer.scrollHeight, behavior: 'smooth' });
-    }
-  }
+function handleScroll() {
+	if (!messagesContainer) return;
+	const { scrollTop, scrollHeight, clientHeight } = messagesContainer;
+	showScrollButton = scrollHeight - scrollTop - clientHeight > 100;
+}
 
-  function handleScroll() {
-    if (!messagesContainer) return;
-    const { scrollTop, scrollHeight, clientHeight } = messagesContainer;
-    showScrollButton = scrollHeight - scrollTop - clientHeight > 100;
-  }
+// Watch for changes in messages
+$: if ($chatState.messages.length > 0) {
+	const lastMessage = $chatState.messages[$chatState.messages.length - 1];
+	isUserMessage = lastMessage.role === "user";
+	// Auto-scroll on both user messages and assistant messages
+	setTimeout(scrollToBottom, 100);
+}
 
-  // Watch for changes in messages
-  $: if ($chatState.messages.length > 0) {
-    const lastMessage = $chatState.messages[$chatState.messages.length - 1];
-    isUserMessage = lastMessage.role === 'user';
-    // Auto-scroll on both user messages and assistant messages
-    setTimeout(scrollToBottom, 100);
-  }
+// Also watch for streaming state changes to ensure scrolling when streaming completes
+$: if ($streamingStore === false) {
+	setTimeout(scrollToBottom, 100);
+}
 
-  // Also watch for streaming state changes to ensure scrolling when streaming completes
-  $: if ($streamingStore === false) {
-    setTimeout(scrollToBottom, 100);
-  }
+onMount(() => {
+	if (messagesContainer) {
+		messagesContainer.addEventListener("scroll", handleScroll);
+		return () => {
+			if (messagesContainer) {
+				messagesContainer.removeEventListener("scroll", handleScroll);
+			}
+		};
+	}
+});
 
-  onMount(() => {
-    if (messagesContainer) {
-      messagesContainer.addEventListener('scroll', handleScroll);
-      return () => {
-        if (messagesContainer) {
-          messagesContainer.removeEventListener('scroll', handleScroll);
-        }
-      };
-    }
-  });
+// Configure marked to be synchronous
+const renderer = new marked.Renderer();
+marked.setOptions({
+	gfm: true,
+	breaks: true,
+	renderer,
+	async: false,
+});
 
-  // Configure marked to be synchronous
-  const renderer = new marked.Renderer();
-  marked.setOptions({
-    gfm: true,
-    breaks: true,
-    renderer,
-    async: false
-  });
-
-  // New shouldRenderAsMarkdown function
+// New shouldRenderAsMarkdown function
 function shouldRenderAsMarkdown(message: Message): boolean {
-    const pattern = get(selectedPatternName);
-    if (pattern && message.role === 'assistant') {
-        return message.format !== 'mermaid';
-    }
-    return message.role === 'assistant' && message.format !== 'plain';
+	const pattern = get(selectedPatternName);
+	if (pattern && message.role === "assistant") {
+		return message.format !== "mermaid";
+	}
+	return message.role === "assistant" && message.format !== "plain";
 }
 
 // Keep the original renderContent function
 function renderContent(message: Message): string {
-    const content = message.content.replace(/\\n/g, '\n');
-    
-    if (shouldRenderAsMarkdown(message)) {
-        try {
-            return marked.parse(content, { async: false }) as string;
-        } catch (error) {
-            console.error('Error rendering markdown:', error);
-            return content;
-        }
-    }
-    return content;
+	const content = message.content.replace(/\\n/g, "\n");
+
+	if (shouldRenderAsMarkdown(message)) {
+		try {
+			return marked.parse(content, { async: false }) as string;
+		} catch (error) {
+			console.error("Error rendering markdown:", error);
+			return content;
+		}
+	}
+	return content;
 }
-
-
-
-  
 </script>
 
 <div class="bg-primary-800/30 rounded-lg flex flex-col h-full shadow-lg">

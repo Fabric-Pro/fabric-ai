@@ -1,19 +1,19 @@
 <script lang="ts">
-  import { toastStore } from '$lib/store/toast-store';
-  import { fly } from 'svelte/transition';
-  import { onMount } from 'svelte';
-  import type { ToastMessage } from '$lib/store/toast-store';
+import { toastStore } from "$lib/store/toast-store";
+import { fly } from "svelte/transition";
+import { onMount } from "svelte";
+import type { ToastMessage } from "$lib/store/toast-store";
 
-  export let toast: ToastMessage;
-  const TOAST_TIMEOUT = 5000;
+export let toast: ToastMessage;
+const TOAST_TIMEOUT = 5000;
 
-  onMount(() => {
-      const timer = setTimeout(() => {
-          toastStore.remove(toast.id);
-      }, TOAST_TIMEOUT);
+onMount(() => {
+	const timer = setTimeout(() => {
+		toastStore.remove(toast.id);
+	}, TOAST_TIMEOUT);
 
-      return () => clearTimeout(timer);
-  });
+	return () => clearTimeout(timer);
+});
 </script>
 
 <div

@@ -1,17 +1,17 @@
 <script lang="ts">
-  import { formatDistance } from 'date-fns';
-  import type { Post } from './post-interface';
-  import PostMeta from './PostMeta.svelte';
-  import Card from '$lib/components/ui/cards/card.svelte';
-  import { cn } from '$lib/utils/utils';
+import { formatDistance } from "date-fns";
+import type { Post } from "./post-interface";
+import PostMeta from "./PostMeta.svelte";
+import Card from "$lib/components/ui/cards/card.svelte";
+import { cn } from "$lib/utils/utils";
 
-  export let post: Post;
-  export let className: string = '';
+export let post: Post;
+export let className: string = "";
 
-  function parseDate(dateStr: string): Date {
-      // Handle both ISO strings and YYYY-MM-DD formats
-      return new Date(dateStr);
-  }
+function parseDate(dateStr: string): Date {
+	// Handle both ISO strings and YYYY-MM-DD formats
+	return new Date(dateStr);
+}
 </script>
 
 <article class="card card-hover group relative rounded-lg border p-6 hover:bg-primary-500/50 {className}">

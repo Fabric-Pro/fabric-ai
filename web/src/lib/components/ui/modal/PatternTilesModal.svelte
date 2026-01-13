@@ -1,78 +1,84 @@
 <script lang="ts">
-    import { createEventDispatcher, onMount } from 'svelte';
-    import TagFilterPanel from '$lib/components/patterns/TagFilterPanel.svelte';
-    let tagFilterRef: TagFilterPanel;
-    let selectedTags: string[] = [];
-    import { cn } from "$lib/utils/utils";
-    import type { Pattern } from '$lib/interfaces/pattern-interface';
-    import { patterns, patternAPI, selectedPatternName } from '$lib/store/pattern-store';
-    import { favorites } from '$lib/store/favorites-store';
-    import { Input } from "$lib/components/ui/input";
-    
-    const dispatch = createEventDispatcher();
-    let isTagPanelOpen = false;
-    let searchQuery = '';
-    let showOnlyFavorites = false;
-    
-    onMount(async () => {
-      try {
-        await patternAPI.loadPatterns();
-      } catch (error) {
-        console.error('Error loading patterns:', error);
-      }
-    });
-    
+import { createEventDispatcher, onMount } from "svelte";
+import TagFilterPanel from "$lib/components/patterns/TagFilterPanel.svelte";
+let tagFilterRef: TagFilterPanel;
+let selectedTags: string[] = [];
+import { cn } from "$lib/utils/utils";
+import type { Pattern } from "$lib/interfaces/pattern-interface";
+import {
+	patterns,
+	patternAPI,
+	selectedPatternName,
+} from "$lib/store/pattern-store";
+import { favorites } from "$lib/store/favorites-store";
+import { Input } from "$lib/components/ui/input";
+
+const dispatch = createEventDispatcher();
+let isTagPanelOpen = false;
+let searchQuery = "";
+let showOnlyFavorites = false;
+
+onMount(async () => {
+	try {
+		await patternAPI.loadPatterns();
+	} catch (error) {
+		console.error("Error loading patterns:", error);
+	}
+});
+
 function toggleFavorite(patternName: string) {
-    favorites.toggleFavorite(patternName);
+	favorites.toggleFavorite(patternName);
 }
 
 function selectPattern(patternName: string) {
-  patternAPI.selectPattern(patternName);
-  dispatch('select', patternName);
+	patternAPI.selectPattern(patternName);
+	dispatch("select", patternName);
 }
 
 function closeModal() {
-  dispatch('close');
+	dispatch("close");
 }
 
 function toggleTagPanel() {
-    isTagPanelOpen = !isTagPanelOpen;
+	isTagPanelOpen = !isTagPanelOpen;
 }
 
 function handleTagFilter(event: CustomEvent<string[]>) {
-  selectedTags = event.detail;
+	selectedTags = event.detail;
 }
 
 function toggleFavoritesFilter() {
-  showOnlyFavorites = !showOnlyFavorites;
+	showOnlyFavorites = !showOnlyFavorites;
 }
 
 // Apply filtering based on search query, favorites filter, and tag selection
-$: filteredPatterns = $patterns
-  .filter(p => {
-    // Apply favorites filter if enabled
-    if (showOnlyFavorites && !$favorites.includes(p.Name)) {
-      return false;
-    }
-    
-    // Apply tag filter if any tags are selected
-    if (selectedTags.length > 0) {
-      if (!p.tags || !selectedTags.every(tag => p.tags.includes(tag))) {
-        return false;
-      }
-    }
-    
-    // Apply search filter if query exists
-    if (searchQuery.trim()) {
-      return (
-        p.Name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        p.Description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (p.tags && p.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase())))
-      );
-    }
-    
-    return true;
-  });
+$: filteredPatterns = $patterns.filter((p) => {
+	// Apply favorites filter if enabled
+	if (showOnlyFavorites && !$favorites.includes(p.Name)) {
+		return false;
+	}
+
+	// Apply tag filter if any tags are selected
+	if (selectedTags.length > 0) {
+		if (!p.tags || !selectedTags.every((tag) => p.tags.includes(tag))) {
+			return false;
+		}
+	}
+
+	// Apply search filter if query exists
+	if (searchQuery.trim()) {
+		return (
+			p.Name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+			p.Description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+			(p.tags &&
+				p.tags.some((tag) =>
+					tag.toLowerCase().includes(searchQuery.toLowerCase()),
+				))
+		);
+	}
+
+	return true;
+});
 </script>
 
 <!-- Main container with flexible layout -->

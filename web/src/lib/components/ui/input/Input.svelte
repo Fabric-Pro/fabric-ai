@@ -1,13 +1,13 @@
 <script lang="ts">
-  import { cn } from "$lib/utils/utils";
+import { cn } from "$lib/utils/utils";
 
-  export let value: string = '';
-  export let placeholder: string | undefined = undefined;
-  export let id: string | undefined = undefined;
-  export let disabled: boolean = false;
-  export let required: boolean = false;
-  let className: string | undefined = undefined;
-  export { className as class };
+export let value: string = "";
+export let placeholder: string | undefined = undefined;
+export let id: string | undefined = undefined;
+export let disabled: boolean = false;
+export let required: boolean = false;
+let className: string | undefined = undefined;
+export { className as class };
 </script>
 
 <input

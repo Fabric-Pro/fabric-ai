@@ -1,3 +1,3 @@
-import '../app.postcss';
+import "../app.postcss";
 
 export const prerender = false;

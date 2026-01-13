@@ -1,24 +1,24 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  // import { fade } from 'svelte/transition';
-  import { goto } from '$app/navigation';
+import { onMount } from "svelte";
+// import { fade } from 'svelte/transition';
+import { goto } from "$app/navigation";
 
-  let mounted = false;
-  let currentCommand = '';
-  let commandHistory: string[] = [];
-  let showCursor = true;
+let mounted = false;
+let currentCommand = "";
+let commandHistory: string[] = [];
+let showCursor = true;
 
-  let terminalContent = '';
-  let typing = false;
-  
-  const pages = {
-    home: 'Welcome to Fabric\n\nType `help` to see available commands.',
-    about: 'About Fabric',
-    chat: 'Enter `chat` to start a chat session.',
-    posts: 'Enter `posts` to view blog posts.',
-    tags: 'Enter `tags` to view tags.',
-    contact: 'Enter `contact` to view contact info.',
-    help: `Available commands:
+let terminalContent = "";
+let typing = false;
+
+const pages = {
+	home: "Welcome to Fabric\n\nType `help` to see available commands.",
+	about: "About Fabric",
+	chat: "Enter `chat` to start a chat session.",
+	posts: "Enter `posts` to view blog posts.",
+	tags: "Enter `tags` to view tags.",
+	contact: "Enter `contact` to view contact info.",
+	help: `Available commands:
 - help: Show this help message
 - about: Navigate to About page
 - chat: Start a chat session
@@ -27,75 +27,75 @@
 - contact: Get in touch
 - clear: Clear the terminal
 - ls: List available pages`,
-  };
+};
 
-  // Simulate typing effect
-  async function typeContent(content: string) {
-    typing = true;
-    terminalContent = '';
-    for (const char of content) {
-      terminalContent += char;
-      await new Promise(resolve => setTimeout(resolve, 20));
-    }
-    typing = false;
-  }
+// Simulate typing effect
+async function typeContent(content: string) {
+	typing = true;
+	terminalContent = "";
+	for (const char of content) {
+		terminalContent += char;
+		await new Promise((resolve) => setTimeout(resolve, 20));
+	}
+	typing = false;
+}
 
-  function handleCommand(cmd: string) {
-    commandHistory = [...commandHistory, cmd];
-    
-    switch (cmd) {
-      case 'clear':
-        terminalContent = '';
-        break;
-      case 'help':
-        typeContent(pages.help);
-        break;
-      case 'about':
-        goto('/about');
-        break;
-      case 'chat':
-        goto('/chat');
-        break;
-      case 'posts': 
-        goto('/posts');
-        break;
-      case 'tags':
-        goto('/tags');
-        break;
-      case 'contact':
-        goto('/contact');
-        break;
-      case 'ls':
-        typeContent(Object.keys(pages).join('\n'));
-        break;
-      default:
-          const page = cmd.slice(3);
-          if (pages[page]) {
-            typeContent(pages[page]);
-          } else {
-            typeContent(`Error: Page '${page}' not found`);
-          }
-        }
-    }
+function handleCommand(cmd: string) {
+	commandHistory = [...commandHistory, cmd];
 
-  function handleKeydown(event: KeyboardEvent) {
-    if (typing) return;
+	switch (cmd) {
+		case "clear":
+			terminalContent = "";
+			break;
+		case "help":
+			typeContent(pages.help);
+			break;
+		case "about":
+			goto("/about");
+			break;
+		case "chat":
+			goto("/chat");
+			break;
+		case "posts":
+			goto("/posts");
+			break;
+		case "tags":
+			goto("/tags");
+			break;
+		case "contact":
+			goto("/contact");
+			break;
+		case "ls":
+			typeContent(Object.keys(pages).join("\n"));
+			break;
+		default:
+			const page = cmd.slice(3);
+			if (pages[page]) {
+				typeContent(pages[page]);
+			} else {
+				typeContent(`Error: Page '${page}' not found`);
+			}
+	}
+}
 
-    if (event.key === 'Enter') {
-      handleCommand(currentCommand.trim());
-      currentCommand = '';
-    }
-  }
+function handleKeydown(event: KeyboardEvent) {
+	if (typing) return;
 
-  onMount(() => {
-    mounted = true;
-    setInterval(() => {
-      showCursor = !showCursor;
-    }, 500);
+	if (event.key === "Enter") {
+		handleCommand(currentCommand.trim());
+		currentCommand = "";
+	}
+}
 
-    // Initial content
-    typeContent(pages.home);
-  });
+onMount(() => {
+	mounted = true;
+	setInterval(() => {
+		showCursor = !showCursor;
+	}, 500);
+
+	// Initial content
+	typeContent(pages.home);
+});
 </script>
 
 <div class="pt-2 pb-8 px-4">

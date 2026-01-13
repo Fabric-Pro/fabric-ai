@@ -1,45 +1,45 @@
 <script lang="ts">
-  import { page } from '$app/stores';
-  import { Sun, Moon, Menu, X, Github, FileText } from 'lucide-svelte';
-  import { Avatar } from '@skeletonlabs/skeleton';
-  import { fade } from 'svelte/transition';
-  import { theme, cycleTheme, initTheme } from '$lib/store/theme-store';
-  import { onMount } from 'svelte';
-  import Modal from '$lib/components/ui/modal/Modal.svelte';
-  import PatternList from '$lib/components/patterns/PatternList.svelte';
-  import PatternTilesModal from '$lib/components/ui/modal/PatternTilesModal.svelte';
-  import HelpModal from '$lib/components/ui/help/HelpModal.svelte';
-  import { selectedPatternName } from '$lib/store/pattern-store';
+import { page } from "$app/stores";
+import { Sun, Moon, Menu, X, Github, FileText } from "lucide-svelte";
+import { Avatar } from "@skeletonlabs/skeleton";
+import { fade } from "svelte/transition";
+import { theme, cycleTheme, initTheme } from "$lib/store/theme-store";
+import { onMount } from "svelte";
+import Modal from "$lib/components/ui/modal/Modal.svelte";
+import PatternList from "$lib/components/patterns/PatternList.svelte";
+import PatternTilesModal from "$lib/components/ui/modal/PatternTilesModal.svelte";
+import HelpModal from "$lib/components/ui/help/HelpModal.svelte";
+import { selectedPatternName } from "$lib/store/pattern-store";
 
-  let isMenuOpen = false;
-  let showPatternModal = false;
-  let showPatternTilesModal = false;
-  let showHelpModal = false;
+let isMenuOpen = false;
+let showPatternModal = false;
+let showPatternTilesModal = false;
+let showHelpModal = false;
 
-  function goToGithub() {
-    window.open('https://github.com/danielmiessler/fabric', '_blank');
-  }
+function goToGithub() {
+	window.open("https://github.com/danielmiessler/fabric", "_blank");
+}
 
-  function toggleMenu() {
-    isMenuOpen = !isMenuOpen;
-  }
+function toggleMenu() {
+	isMenuOpen = !isMenuOpen;
+}
 
-  $: currentPath = $page.url.pathname;
-  $: isDarkMode = $theme === 'my-custom-theme';
+$: currentPath = $page.url.pathname;
+$: isDarkMode = $theme === "my-custom-theme";
 
-  const navItems = [
-    { href: '/', label: 'Home' },
-    { href: '/posts', label: 'Posts' },
-    // { href: '/tags', label: 'Tags' },
-    { href: '/chat', label: 'Chat' },
-    //{ href: '/obsidian', label: 'Obsidian' },
-    { href: '/contact', label: 'Contact' },
-    { href: '/about', label: 'About' },
-  ];
+const navItems = [
+	{ href: "/", label: "Home" },
+	{ href: "/posts", label: "Posts" },
+	// { href: '/tags', label: 'Tags' },
+	{ href: "/chat", label: "Chat" },
+	//{ href: '/obsidian', label: 'Obsidian' },
+	{ href: "/contact", label: "Contact" },
+	{ href: "/about", label: "About" },
+];
 
-  onMount(() => {
-    initTheme();
-  }); 
+onMount(() => {
+	initTheme();
+});
 </script>
 
 <header class="fixed top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">

@@ -1,14 +1,14 @@
 <script>
-  import { Avatar } from '@skeletonlabs/skeleton';
+import { Avatar } from "@skeletonlabs/skeleton";
 
-  export let header = '';
-  export let imageUrl = '';
-  export let imageAlt = 'Post';
-  export let title = '';
-  export let content = '';
-  export let authorName = '';
-  export let authorAvatarUrl = '';
-  export let link = '';
+export let header = "";
+export let imageUrl = "";
+export let imageAlt = "Post";
+export let title = "";
+export let content = "";
+export let authorName = "";
+export let authorAvatarUrl = "";
+export let link = "";
 </script>
 
 <div class="w-full text-token grid grid-cols-1 md:grid-cols-1 justify-end gap-4">

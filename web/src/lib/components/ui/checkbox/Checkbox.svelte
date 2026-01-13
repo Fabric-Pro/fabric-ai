@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { cn } from "$lib/utils/utils";
-  
-  export let checked: boolean = false;
-  export let id: string | undefined = undefined;
-  export let disabled: boolean = false;
-  let className: string | undefined = undefined;
-  export { className as class };
+import { cn } from "$lib/utils/utils";
+
+export let checked: boolean = false;
+export let id: string | undefined = undefined;
+export let disabled: boolean = false;
+let className: string | undefined = undefined;
+export { className as class };
 </script>
 
 <div class="flex items-center">

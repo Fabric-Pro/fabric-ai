@@ -1,16 +1,16 @@
 <script lang="ts">
-  import { X } from 'lucide-svelte';
-  import { createEventDispatcher } from 'svelte';
+import { X } from "lucide-svelte";
+import { createEventDispatcher } from "svelte";
 
-  const dispatch = createEventDispatcher<{
-    close: void;
-  }>();
+const dispatch = createEventDispatcher<{
+	close: void;
+}>();
 
-  let modalContent: HTMLDivElement;
+let modalContent: HTMLDivElement;
 
-  function handleMouseLeave() {
-    dispatch('close');
-  }
+function handleMouseLeave() {
+	dispatch("close");
+}
 </script>
 
 

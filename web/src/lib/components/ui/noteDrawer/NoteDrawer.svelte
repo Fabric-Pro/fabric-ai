@@ -1,84 +1,85 @@
 <script lang="ts">
-  import { Drawer, getDrawerStore, getToastStore } from '@skeletonlabs/skeleton';
-  import type { DrawerStore } from '@skeletonlabs/skeleton';
-  import { onMount } from 'svelte';
-  import { noteStore } from '$lib/store/note-store';
-  import { afterNavigate, beforeNavigate } from '$app/navigation';
-  import { clickOutside } from '$lib/actions/clickOutside';
-  
-  const drawerStore = getDrawerStore();
-  const toastStore = getToastStore();
-  
-  let textareaEl: HTMLTextAreaElement;
-  let saving = false;
+import { Drawer, getDrawerStore, getToastStore } from "@skeletonlabs/skeleton";
+import type { DrawerStore } from "@skeletonlabs/skeleton";
+import { onMount } from "svelte";
+import { noteStore } from "$lib/store/note-store";
+import { afterNavigate, beforeNavigate } from "$app/navigation";
+import { clickOutside } from "$lib/actions/clickOutside";
 
-  let content = '';
-  
-  // Auto-resize textarea
-  function adjustTextareaHeight() {
-    if (textareaEl) {
-      textareaEl.style.height = 'auto';
-      textareaEl.style.height = textareaEl.scrollHeight + 'px';
-    }
-  }
-  
-  async function saveContent() {
-    if (!$noteStore.content.trim()) {
-      toastStore.trigger({
-        message: 'Cannot save empty note',
-        background: 'variant-filled-warning'
-      });
-      return;
-    }
+const drawerStore = getDrawerStore();
+const toastStore = getToastStore();
 
-    try {
-      saving = true;
-      await noteStore.save();
-      
-      toastStore.trigger({
-        message: `Note saved successfully!`,
-        background: 'variant-filled-success'
-      });
-    } catch (error) {
-      console.error('Failed to save note:', error);
-      toastStore.trigger({
-        message: error instanceof Error ? error.message : 'Failed to save notes',
-        background: 'variant-filled-error'
-      });
-    } finally {
-      saving = false;
-    }
-  }
-  
-  // Prompt user if trying to close with unsaved changes
-  $: if ($drawerStore.open === false && $noteStore.isDirty) {
-    if (confirm('You have unsaved changes. Are you sure you want to close?')) {
-      noteStore.reset();
-    } else {
-      drawerStore.open({});
-    }
-  }
-  
-  // Load saved content when drawer opens
-  $: if ($drawerStore.open) {
-    const savedContent = localStorage.getItem('savedText');
-    if (savedContent) {
-      noteStore.updateContent(savedContent);
-      noteStore.save();
-    }
-  }
-  
-  // Keyboard shortcuts
-  function handleKeydown(event: KeyboardEvent) {
-    if ((event.ctrlKey || event.metaKey) && event.key === 's') {
-      event.preventDefault();
-      saveContent();
-    }
-  }
-  
-  onMount(() => {
-    adjustTextareaHeight();
-  });
+let textareaEl: HTMLTextAreaElement;
+let saving = false;
+
+let content = "";
+
+// Auto-resize textarea
+function adjustTextareaHeight() {
+	if (textareaEl) {
+		textareaEl.style.height = "auto";
+		textareaEl.style.height = textareaEl.scrollHeight + "px";
+	}
+}
+
+async function saveContent() {
+	if (!$noteStore.content.trim()) {
+		toastStore.trigger({
+			message: "Cannot save empty note",
+			background: "variant-filled-warning",
+		});
+		return;
+	}
+
+	try {
+		saving = true;
+		await noteStore.save();
+
+		toastStore.trigger({
+			message: `Note saved successfully!`,
+			background: "variant-filled-success",
+		});
+	} catch (error) {
+		console.error("Failed to save note:", error);
+		toastStore.trigger({
+			message:
+				error instanceof Error ? error.message : "Failed to save notes",
+			background: "variant-filled-error",
+		});
+	} finally {
+		saving = false;
+	}
+}
+
+// Prompt user if trying to close with unsaved changes
+$: if ($drawerStore.open === false && $noteStore.isDirty) {
+	if (confirm("You have unsaved changes. Are you sure you want to close?")) {
+		noteStore.reset();
+	} else {
+		drawerStore.open({});
+	}
+}
+
+// Load saved content when drawer opens
+$: if ($drawerStore.open) {
+	const savedContent = localStorage.getItem("savedText");
+	if (savedContent) {
+		noteStore.updateContent(savedContent);
+		noteStore.save();
+	}
+}
+
+// Keyboard shortcuts
+function handleKeydown(event: KeyboardEvent) {
+	if ((event.ctrlKey || event.metaKey) && event.key === "s") {
+		event.preventDefault();
+		saveContent();
+	}
+}
+
+onMount(() => {
+	adjustTextareaHeight();
+});
 </script>
 
 <Drawer width="w-[40%]" class="flex flex-col h-[calc(100vh-theme(spacing.32))] p-4 mt-16">

@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { formatDistance } from 'date-fns';
-  import type { PostMetadata } from './post-interface';
+import { formatDistance } from "date-fns";
+import type { PostMetadata } from "./post-interface";
 
-  export let data: PostMetadata;
-  export let showUpdated = true;
+export let data: PostMetadata;
+export let showUpdated = true;
 </script>
 
 <div class="flex flex-col gap-2 text-sm text-muted-foreground">

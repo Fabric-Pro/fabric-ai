@@ -1,6 +1,6 @@
 <script>
-  import Toc from '$lib/components/ui/toc/Toc.svelte';
-  import Content from './README.md';
+import Toc from "$lib/components/ui/toc/Toc.svelte";
+import Content from "./README.md";
 </script>
 
 {#if Content}
